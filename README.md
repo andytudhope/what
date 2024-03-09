@@ -1,46 +1,53 @@
-# Getting Started with Create React App
+# WHAT
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A better way of making memes with `ao`.
 
-## Available Scripts
+## How to use this
 
-In the project directory, you can run:
+Working with `ao` is an incredible amount of fun. So, first, put your play hat firmly on. Then:
 
-### `npm start`
+```bash
+git clone git@github.com:andytudhope/what.git
+cd what
+npm i
+npm run start
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in the browser.
+That is all you need to get going with the front end.
 
-The page will reload if you make edits.\
-You will also see any lint errors in the console.
+If you make changes and would like to deploy them to Arweave, you'll need to generate a `wallet.json` file and fund it with some AR. You can generate a wallet file with:
 
-### `npm test`
+```bash
+node -e "require('arweave').init({}).wallets.generate().then(JSON.stringify).then(console.log.bind(console))" > wallet.json
+```
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Structure
 
-### `npm run build`
+All the code for the frontend is in the `src/` directory and, because I am dirty hacker, I just put everything in HomePage.tsx. Good luck, ser.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+The `process/` directory holds the two Lua files responsible for the WHAT process on `ao`. That's right, just 304 lines of easy-to-read code. No fancy smart contract frameworks to learn. No test networks to fork at specific block heights. Just a few Lua scripts, and we can get basically the same functionality for our WHAT memecoin as the entire MakerDAO system...
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+If you'd like to run the Lua files yourself, that's also easy enough.
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+Get `aos`, change into the directory where the Lua files live, and run `aos`:
 
-### `npm run eject`
+```bash
+npm i -g https://get_ao.g8way.io
+cd what/process
+aos
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can’t go back!**
+Then you can load the two files in the interactive console with this convenient command and you're away:
 
-If you aren’t satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```bash
+.load what.lua
+.load propose-stake.lua
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you’re on your own.
+You can make any changes you like to those files, and re-run the load command to make your own unique logic. It won't interfere with mine. We all get to use the single system image, this unified computing environment, in our own way. Simply note your process ID when `aos` starts, replace that in the relevant places in the React App, and you should be good to go.
 
-You don’t have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn’t feel obligated to use this feature. However we understand that this tool wouldn’t be useful if you couldn’t customize it when you are ready for it.
+## More info
 
-## Learn More
+Sound too good to be true? I know...
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
+You can [read the spec here](https://ao.arweave.dev/#/spec).

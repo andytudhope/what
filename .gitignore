@@ -21,3 +21,7 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+wallet.json
+build-manifest.csv
+build-errors.txt
