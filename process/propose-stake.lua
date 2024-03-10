@@ -1,14 +1,7 @@
 -- Key the Proposals table by the name so that any process can propose multiple handlers
-Proposals = Proposals or {
-    ["init"] = {
-        stake = 0,
-        pattern = "none",
-        handle = "test",
-        stakers = {} -- Track stakers and their individual stakes for later unstaking
-    }
-}
+Proposals = Proposals or {}
 -- Keep track of which community-proposed handlers are currently active
-ActiveHandlers = ActiveHandlers or { }
+ActiveHandlers = ActiveHandlers or {}
 -- So we can add an active handler to the process list
 Handlers.list = Handlers.list or {}
 
@@ -25,7 +18,7 @@ function loadHandlers()
     -- Sort the Proposals table by amount staked
     local sortableProposals = {}
     for name, details in pairs(Proposals) do
-        table.insert(sortableProposals, {name = name, stake = details.stake, pattern = details.pattern, handle = details.handle})
+        table.insert(sortableProposals, {name = name, stake = details.stake, stakers = details.stakers, pattern = details.pattern, handle = details.handle})
     end
     table.sort(sortableProposals, function(a, b) return a.stake > b.stake end)
 
@@ -34,18 +27,24 @@ function loadHandlers()
         if loadedCount >= 5 then break end -- Stop after loading 5 proposals
 
         -- Check if the proposal has more than 10 WHAT staked
-        if proposal.stake > 10000 then
+        if proposal.stake > 1000 then
             assert(type(proposal.name) == 'string' and type(proposal.pattern) == 'function' and  type(proposal.handle) == 'function', 'invalid arguments: handler.add(name : string, pattern : function(msg: Message) : {-1 = break, 0 = skip, 1 = continue}, handle(msg : Message) : void)') 
             assert(type(proposal.name) == 'string', 'name MUST be string')
             assert(type(proposal.pattern) == 'function', 'pattern MUST be function')
             assert(type(proposal.handle) == 'function', 'handle MUST be function')
             table.insert(Handlers.list, { pattern = proposal.pattern, handle = proposal.handle, name = proposal.name })
-            table.insert(ActiveHandlers, proposal.name)
+            ActiveHandlers[proposal.name] = {
+                pattern = proposal.pattern,
+                handle = proposal.handle,
+                stake = proposal.stake,
+                stakers = proposal.stakers
+            }
             loadedCount = loadedCount + 1
         end
     end
 end
 
+-- USed to delete the active handlers when loading
 function findIndexByProp(array, prop, value)
     for index, object in ipairs(array) do
       if object[prop] == value then
@@ -55,11 +54,32 @@ function findIndexByProp(array, prop, value)
     return nil
 end
 
+-- Because json.encode(Proposals) just returns [object Object] instead of a proper string, likely because
+-- I am being a bit naughty and storing functions directly in that table in order to load them into Handlers.list
+function tableToJson(tbl)
+    local result = {}
+    for key, value in pairs(tbl) do
+        local valueType = type(value)
+        if valueType == "table" then
+            -- Recursive call for nested tables
+            value = tableToJson(value)
+            table.insert(result, string.format('"%s":%s', key, value))
+        elseif valueType == "string" then
+            table.insert(result, string.format('"%s":"%s"', key, value))
+        elseif valueType == "number" then
+            table.insert(result, string.format('"%s":%d', key, value))
+        elseif valueType == "function" then
+            table.insert(result, string.format('"%s":"%s"', key, tostring(value)))
+        end
+    end
+
+    local json = "{" .. table.concat(result, ",") .. "}"
+    return json
+end
+
 -- expects a proposal in the form of 
 -- Send({ Target = WHAT, Action = "Propose", Tags = {Name = "ping", Pattern = "Handlers.utils.hasMatchingTag('Action', 'Ping')", Handle = "Handlers.utils.reply('pong')"} })
--- Will add this proposed Handler to the Proposals table.
--- TODO: This approach won't work for general functions, if I try pass in something like:
--- Send({ Target = WHAT, Action = "Propose", Tags = {Name = "moreWhatForMe", Pattern = "function(m) return m.Tags.Action == 'Credit-Notice' and m.From == CRED and m.Tags.Quantity >= '1000' and 'continue' end", Handle = "function(m) Balances['XlDnupnhBVTUnbqolsta42g8-jBmm7TEQTza62Orz1Q'] = Balances['XlDnupnhBVTUnbqolsta42g8-jBmm7TEQTza62Orz1Q'] + 10000 end"} })
+-- Will add this proposed Handler to the Proposals table. 
 Handlers.add(
     "propose",
     Handlers.utils.hasMatchingTag("Action", "Propose"),
@@ -153,5 +173,21 @@ Handlers.add(
         else
             ao.send({ Target = m.From, Data = "You do not have the quantity of WHAT staked on this proposal you have attempted to unstake." })
         end
+    end
+)
+
+Handlers.add(
+    "proposals",
+    Handlers.utils.hasMatchingTag("Action", "Proposals"),
+    function(m)
+        ao.send({ Target = m.From, Data = tableToJson(Proposals) })
+    end
+)
+
+Handlers.add(
+    "current",
+    Handlers.utils.hasMatchingTag("Action", "Current"),
+    function(m)
+        ao.send({ Target = m.From, Data = tableToJson(ActiveHandlers) })
     end
 )
