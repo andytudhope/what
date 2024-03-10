@@ -42,14 +42,11 @@ local function calcCoin(quantity, process)
   end
 
   local actualWhatUnits = whatToMint * 1000
-  return tostring(actualWhatUnits)
+  return actualWhatUnits
 end
 
 local function validSend(quantity, process)
-  if CredSent[process] == nil then
-    return true
-  end
-  if CredSent[process] + quantity <= 10000 then
+  if CredSent[process] == nil or CredSent[process] + quantity <= 10000 then
     return true
   else
     return false
@@ -138,7 +135,7 @@ Handlers.add(
       local act = qty / 1000
       if validSend(act, m.Tags.Sender) then
         local what = calcCoin(act, m.Tags.Sender)
-        Balances[m.Tags.Sender] = Balances[m.Tags.Sender] + tonumber(what)
+        Balances[m.Tags.Sender] = (Balances[m.Tags.Sender] or 0) + what
         ao.send({ Target = m.Tags.Sender, Data = "Your WHAT balance is now: " .. Balances[m.Tags.Sender] })
       else
         ao.send({Target = m.Tags.Sender, Data = "You can't buy WHAT worth more than 10000 CRED"})
